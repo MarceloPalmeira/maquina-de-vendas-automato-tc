@@ -1,172 +1,352 @@
 import tkinter as tk
 from tkinter import messagebox
 
-# Classe para a demonstração gráfica do autômato
-class AutomatoGrafico:
+# Descrições dos estados do autômato (novos estados: Q0, Q1, Q2, Q3, Q4)
+STATE_DESCRIPTIONS = {
+    "Q0": "Estado inicial: Saldo 0. Aguardando inserção de dinheiro.",
+    "Q1": "Saldo R$2. Opções: comprar (Refrigerante) ou inserir mais R$2 para ir a Q4.",
+    "Q2": "Saldo R$5. Opções: comprar (Batata Frita) ou inserir mais R$5 para ir a Q3.",
+    "Q3": "Saldo R$10. Pode ser atingido diretamente de Q0 ou via Q2. Compre (Doce).",
+    "Q4": "Saldo R$4. Compre (Água)."
+}
+
+# Painel do autômato com estados circulares e os 5 requisitos
+class AutomataDisplay:
     def __init__(self, master):
         self.master = master
-        self.canvas = tk.Canvas(master, width=500, height=250, bg="white")
-        self.canvas.pack(padx=10, pady=10)
-        # Coordenadas dos estados
-        self.coords = {
-            "ESPERANDO SELEÇÃO": (70, 100, 170, 200),
-            "ACEITANDO DINHEIRO": (190, 40, 290, 140),
-            "ENTREGANDO PRODUTO": (310, 100, 410, 200)
+        
+        # Título do diagrama de estados
+        tk.Label(master, text="Transições Possíveis:", font=("Helvetica", 10, "bold")).pack(pady=(5,0))
+        
+        # Canvas para desenhar o diagrama
+        self.diagram_canvas = tk.Canvas(master, width=500, height=300, bg="white")
+        self.diagram_canvas.pack(padx=5, pady=5)
+        
+        # Define as posições para cada estado: (centro_x, centro_y, raio)
+        self.state_positions = {
+            "Q0": (60, 150, 40),
+            "Q1": (160, 150, 40),  # Saldo R$2
+            "Q2": (160, 50, 40),   # Saldo R$5
+            "Q3": (260, 50, 40),   # Saldo R$10
+            "Q4": (260, 150, 40)   # Saldo R$4
         }
+        self.state_circles = {}
         self.draw_diagram()
         
+        # Painel com detalhes dos estados
+        self.details_frame = tk.Frame(master)
+        self.details_frame.pack(padx=5, pady=5, fill=tk.X)
+        tk.Label(self.details_frame, text="Detalhes dos Estados do Autômato:", font=("Helvetica", 10, "bold")).pack(anchor="w")
+        self.details_labels = {}
+        for state, description in STATE_DESCRIPTIONS.items():
+            lbl = tk.Label(self.details_frame, text=f"{state}: {description}", anchor="w")
+            lbl.pack(fill=tk.X)
+            self.details_labels[state] = lbl
+
+        # Painel com os 5 requisitos do autômato
+        self.requirements_frame = tk.Frame(master, bg="white")
+        self.requirements_frame.pack(padx=5, pady=5, fill=tk.X)
+        req_text = (
+            "Requisitos do Autômato:\n"
+            "1. Estado Inicial: Q0 (Aceitando Dinheiro).\n"
+            "2. Alfabeto: {2, 4, 5, 10, 'comprar'}.\n"
+            "3. Conjunto de Estados Finais: {TRANSAÇÃO CONCLUÍDA} ou estado de conclusão da compra.\n"
+            "4. Função de Transição: Definida pelas transições entre Q0, Q1, Q2, Q3 e Q4.\n"
+            "5. Quinto Elemento: O conjunto de Estados Finais (F)."
+        )
+        tk.Label(self.requirements_frame, text=req_text, justify="left", font=("Helvetica", 10)).pack(anchor="w")
+
     def draw_diagram(self):
-        # Desenha os estados
-        self.circles = {}
-        for estado, coord in self.coords.items():
-            x1, y1, x2, y2 = coord
-            oval = self.canvas.create_oval(x1, y1, x2, y2, fill="white", outline="black", width=2)
-            self.circles[estado] = oval
-            # Texto centralizado
-            self.canvas.create_text((x1+x2)//2, (y1+y2)//2, text=estado, font=("Arial", 8), width=80)
+        # Desenha cada estado como um círculo com o nome
+        for state, (cx, cy, r) in self.state_positions.items():
+            x1, y1, x2, y2 = cx - r, cy - r, cx + r, cy + r
+            oval = self.diagram_canvas.create_oval(x1, y1, x2, y2, fill="white", outline="black", width=2)
+            self.state_circles[state] = oval
+            self.diagram_canvas.create_text(cx, cy, text=state, font=("Helvetica", 8, "bold"), width=80)
         
-        # Desenha as setas entre os estados
-        # De ESPERANDO SELEÇÃO para ACEITANDO DINHEIRO
-        self.canvas.create_line(170, 150, 190, 90, arrow=tk.LAST, width=2)
-        # De ACEITANDO DINHEIRO para ENTREGANDO PRODUTO
-        self.canvas.create_line(290, 90, 310, 150, arrow=tk.LAST, width=2)
-        # De ENTREGANDO PRODUTO para ESPERANDO SELEÇÃO (loop de retorno)
-        self.canvas.create_line(360, 200, 360, 230, 110, 230, 110, 200, arrow=tk.LAST, width=2)
-    
-    def update_state(self, estado_atual):
-        # Atualiza o diagrama, destacando o estado atual com cor
-        for estado, oval in self.circles.items():
-            if estado == estado_atual:
-                self.canvas.itemconfig(oval, fill="lightblue")
+        # Desenha as setas de transição:
+        # De Q0 para Q1 (inserir R$2)
+        self.diagram_canvas.create_line(100, 150, 140, 150, arrow=tk.LAST, width=2)
+        # De Q0 para Q2 (inserir R$5)
+        self.diagram_canvas.create_line(80, 150, 120, 80, arrow=tk.LAST, width=2)
+        # De Q0 para Q3 (inserir R$10 diretamente)
+        self.diagram_canvas.create_line(80, 150, 120, 50, arrow=tk.LAST, width=2)
+        # De Q1 para Q4 (inserir mais R$2)
+        self.diagram_canvas.create_line(200, 150, 240, 150, arrow=tk.LAST, width=2)
+        # De Q2 para Q3 (inserir mais R$5)
+        self.diagram_canvas.create_line(180, 50, 220, 50, arrow=tk.LAST, width=2)
+
+    def update_state(self, current_state):
+        # Atualiza o diagrama destacando o estado atual
+        for state, circle in self.state_circles.items():
+            color = "lightblue" if state == current_state else "white"
+            self.diagram_canvas.itemconfig(circle, fill=color)
+        for state, lbl in self.details_labels.items():
+            if state == current_state:
+                lbl.config(bg="lightyellow")
             else:
-                self.canvas.itemconfig(oval, fill="white")
+                lbl.config(bg=self.master.cget("bg"))
 
-
-# Classe para a máquina de vendas que interage com o autômato gráfico
-class MaquinaVendas:
-    def __init__(self, master, automato):
-        # Note que master aqui é um Frame, portanto não usamos title()
+# Representação gráfica da máquina de vendas
+class VendingMachineGraphic:
+    def __init__(self, master, products):
         self.master = master
-        self.automato = automato
-        self.frame = tk.Frame(master)
-        self.frame.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
-        # Catálogo de produtos: código, nome e preço
-        self.produtos = {
-            "A1": {"nome": "Refrigerante", "preco": 5.0},
-            "A2": {"nome": "Água", "preco": 3.0},
-            "B1": {"nome": "Suco", "preco": 4.5},
-            "B2": {"nome": "Chá", "preco": 4.0}
+        self.products = products
+        self.canvas = tk.Canvas(master, width=300, height=400, bg="#eee")
+        self.canvas.pack(padx=5, pady=5)
+        self.draw_machine()
+
+    def draw_machine(self):
+        self.canvas.delete("all")
+        # Desenha o corpo da máquina
+        self.canvas.create_rectangle(20, 20, 280, 380, fill="#ccc", outline="black", width=2)
+        # Área de exibição de produtos
+        self.canvas.create_rectangle(30, 30, 270, 200, fill="#fff", outline="black")
+        self.canvas.create_text(150, 40, text="Produtos", font=("Helvetica", 10, "bold"))
+        # Desenha os compartimentos para os produtos
+        num = len(self.products)
+        slot_height = 150 // num
+        y = 60
+        for code, info in self.products.items():
+            self.canvas.create_rectangle(40, y, 260, y+slot_height-5, fill="#ddd", outline="black")
+            self.canvas.create_text(150, y + slot_height//2 - 5, 
+                                    text=f"{code}: {info['name']} - R$ {info['price']:.2f}", 
+                                    font=("Helvetica", 9))
+            y += slot_height
+        # Área para inserção de dinheiro
+        self.canvas.create_rectangle(30, 220, 270, 280, fill="#fafafa", outline="black")
+        self.canvas.create_text(150, 240, text="Entrada de Dinheiro", font=("Helvetica", 10, "italic"))
+        # Área para entrega do produto
+        self.canvas.create_rectangle(30, 300, 270, 360, fill="#fafafa", outline="black")
+        self.canvas.create_text(150, 330, text="Entrega do Produto", font=("Helvetica", 10, "italic"), tag="delivery")
+
+    def highlight_slot(self, code):
+        # Redesenha a máquina para manter os preços e realça o compartimento do produto correspondente
+        self.draw_machine()
+        num = len(self.products)
+        slot_height = 150 // num
+        y = 60
+        for c in self.products.keys():
+            if c == code:
+                outline_color = "red"
+                self.canvas.create_rectangle(40, y, 260, y+slot_height-5, fill="#ddd", outline=outline_color, width=3)
+            y += slot_height
+
+    def deliver_product(self, product_name):
+        # Atualiza a área de "Entrega do Produto" com o nome do produto comprado
+        self.canvas.delete("delivery")
+        self.canvas.create_text(150, 330, text=f"Entrega: {product_name}", font=("Helvetica", 10, "italic"), tag="delivery")
+
+# Sistema interativo da Máquina de Vendas (em português)
+class AmericanVendingMachine:
+    def __init__(self, master, automata_display, vending_graphic):
+        self.master = master
+        self.automata_display = automata_display
+        self.vending_graphic = vending_graphic
+        
+        self.frame = tk.Frame(master, bg="#222", padx=10, pady=10)
+        self.frame.pack(padx=5, pady=5, fill=tk.BOTH, expand=True)
+        
+        # Catálogo de produtos com preços permitidos únicos (em R$)
+        self.products = {
+            "P1": {"name": "Refrigerante", "price": 2},
+            "P2": {"name": "Água", "price": 4},
+            "P3": {"name": "Batata Frita", "price": 5},
+            "P4": {"name": "Doce", "price": 10}
         }
-        self.estado = "ESPERANDO SELEÇÃO"
-        self.saldo = 0.0
-        self.produto_selecionado = None
+        # Estado inicial: Q0
+        self.state = "Q0"
+        self.balance = 0.0
+        self.matching_product = None  # Produto cujo preço corresponde exatamente ao saldo
         self.create_widgets()
-        self.atualizar_estado(self.estado)
-
+        self.update_state("Q0")
+        
     def create_widgets(self):
-        # Frame para exibir os produtos
-        self.frame_produtos = tk.LabelFrame(self.frame, text="Produtos Disponíveis")
-        self.frame_produtos.pack(side=tk.TOP, padx=10, pady=10, fill=tk.X)
-
-        for codigo, info in self.produtos.items():
-            texto = f"{codigo}: {info['nome']} - R$ {info['preco']:.2f}"
-            btn = tk.Button(self.frame_produtos, text=texto,
-                            command=lambda c=codigo: self.selecionar_produto(c))
-            btn.pack(fill=tk.X, pady=2)
-
-        # Label que exibe o estado atual do autômato
-        self.label_estado = tk.Label(self.frame, text=f"Estado: {self.estado}", font=("Arial", 12, "bold"))
-        self.label_estado.pack(pady=5)
-
+        title = tk.Label(self.frame, text="Máquina de Vendas Americana", bg="#222", fg="white",
+                         font=("Helvetica", 16, "bold"))
+        title.pack(pady=(0,10))
+        
+        # Exibição do saldo atual
+        self.balance_label = tk.Label(self.frame, text=f"Saldo Atual: R$ {self.balance:.2f}", bg="#222", fg="white", font=("Helvetica", 12))
+        self.balance_label.pack(pady=5)
+        
         # Frame para inserção de dinheiro
-        self.frame_dinheiro = tk.Frame(self.frame)
-        self.frame_dinheiro.pack(pady=10)
-        tk.Label(self.frame_dinheiro, text="Insira o valor (R$):").pack(side=tk.LEFT)
-        self.entry_dinheiro = tk.Entry(self.frame_dinheiro, width=10)
-        self.entry_dinheiro.pack(side=tk.LEFT, padx=5)
-        self.btn_inserir = tk.Button(self.frame_dinheiro, text="Inserir", command=self.inserir_dinheiro)
-        self.btn_inserir.pack(side=tk.LEFT)
-
+        self.cash_frame = tk.Frame(self.frame, bg="#222")
+        self.cash_frame.pack(pady=10)
+        tk.Label(self.cash_frame, text="Inserir Dinheiro (R$):", bg="#222", fg="white", font=("Helvetica", 10)).pack(side=tk.LEFT)
+        self.cash_entry = tk.Entry(self.cash_frame, width=8, font=("Helvetica", 10))
+        self.cash_entry.pack(side=tk.LEFT, padx=5)
+        tk.Button(self.cash_frame, text="Inserir", font=("Helvetica", 10),
+                  command=self.insert_cash, bg="#eee", fg="#222").pack(side=tk.LEFT)
+        
+        # Frame de escolha (oculto inicialmente)
+        self.choice_frame = tk.Frame(self.frame, bg="#222")
+        
         # Botão para resetar a máquina
-        self.btn_reset = tk.Button(self.frame, text="Resetar Máquina", command=self.reset)
-        self.btn_reset.pack(pady=5)
-
-    def atualizar_estado(self, novo_estado):
-        self.estado = novo_estado
-        self.label_estado.config(text=f"Estado: {self.estado}")
-        # Atualiza também o diagrama do autômato gráfico
-        self.automato.update_state(self.estado)
-
-    def selecionar_produto(self, codigo):
-        if self.estado != "ESPERANDO SELEÇÃO":
-            messagebox.showwarning("Aviso", "A máquina já está processando um pedido!")
-            return
-        if codigo in self.produtos:
-            self.produto_selecionado = self.produtos[codigo]
-            self.atualizar_estado("ACEITANDO DINHEIRO")
-            messagebox.showinfo("Produto Selecionado", 
-                                f"Você selecionou {self.produto_selecionado['nome']} por R$ {self.produto_selecionado['preco']:.2f}")
-        else:
-            messagebox.showerror("Erro", "Código inválido.")
-
-    def inserir_dinheiro(self):
-        if self.estado != "ACEITANDO DINHEIRO":
-            messagebox.showwarning("Aviso", "Selecione um produto primeiro!")
-            return
+        tk.Button(self.frame, text="Resetar Máquina", font=("Helvetica", 10, "bold"),
+                  command=self.reset_machine, bg="#f00", fg="white").pack(pady=5)
+    
+    def update_state(self, new_state):
+        self.state = new_state
+        self.automata_display.update_state(self.state)
+    
+    def insert_cash(self):
         try:
-            valor = float(self.entry_dinheiro.get())
+            cash = float(self.cash_entry.get())
         except ValueError:
-            messagebox.showerror("Erro", "Insira um valor numérico válido.")
+            messagebox.showerror("Erro", "Digite um número válido.")
             return
+        self.balance += cash
+        self.cash_entry.delete(0, tk.END)
+        self.balance_label.config(text=f"Saldo Atual: R$ {self.balance:.2f}")
+        
+        # Verifica se o saldo corresponde a um dos preços permitidos
+        self.matching_product = None
+        # Se estiver em Q0, as transições diretas:
+        if self.state == "Q0":
+            if self.balance == 2:
+                self.matching_product = ("P1", self.products["P1"])
+                self.update_state("Q1")
+            elif self.balance == 5:
+                self.matching_product = ("P3", self.products["P3"])
+                self.update_state("Q2")
+            elif self.balance == 10:
+                self.matching_product = ("P4", self.products["P4"])
+                self.update_state("Q3")
+        # Se estiver em Q1, opção de inserir mais R$2 para ir a Q4:
+        if self.state == "Q1" and self.balance == 4:
+            self.matching_product = ("P2", self.products["P2"])
+            self.update_state("Q4")
+        # Se estiver em Q2, opção de inserir mais R$5 para ir a Q3:
+        if self.state == "Q2" and self.balance == 10:
+            self.matching_product = ("P4", self.products["P4"])
+            self.update_state("Q3")
+        
+        if self.matching_product:
+            self.enter_choice_state()
+    
+    def enter_choice_state(self):
+        for widget in self.choice_frame.winfo_children():
+            widget.destroy()
+        code, info = self.matching_product
+        tk.Label(self.choice_frame, text=f"Seu saldo corresponde a {info['name']} (R$ {info['price']:.2f}).",
+                 bg="#222", fg="white", font=("Helvetica", 10)).pack(pady=5)
+        btn_frame = tk.Frame(self.choice_frame, bg="#222")
+        btn_frame.pack(pady=5)
+        tk.Button(btn_frame, text="Comprar Produto", font=("Helvetica", 10),
+                  command=self.purchase_product, bg="#0a0", fg="white").pack(side=tk.LEFT, padx=5)
+        # Apenas em Q1 e Q2 há a opção de inserir mais dinheiro
+        if self.state in ["Q1", "Q2"]:
+            tk.Button(btn_frame, text="Inserir Mais Dinheiro", font=("Helvetica", 10),
+                      command=self.add_more_cash, bg="#00a", fg="white").pack(side=tk.LEFT, padx=5)
+        self.choice_frame.pack(pady=10)
+        self.vending_graphic.highlight_slot(code)
+    
+    def add_more_cash(self):
+        self.choice_frame.pack_forget()
+        self.update_state("Q0")
+    
+    def purchase_product(self):
+        self.choice_frame.pack_forget()
+        code, info = self.matching_product
+        # Atualiza a área de entrega com o nome do produto comprado, sem pop-up adicional
+        self.vending_graphic.deliver_product(info["name"])
+        # Exibe apenas um pop-up final informando que a transação foi concluída
+        messagebox.showinfo("Transação", "Transação concluída!")
+        self.reset_machine()
+    
+    def reset_machine(self):
+        self.balance = 0.0
+        self.matching_product = None
+        self.update_state("Q0")
+        self.balance_label.config(text=f"Saldo Atual: R$ {self.balance:.2f}")
+        self.cash_entry.delete(0, tk.END)
+        self.choice_frame.pack_forget()
+        self.vending_graphic.draw_machine()
 
-        self.saldo += valor
-        messagebox.showinfo("Saldo Atual", f"Saldo atual: R$ {self.saldo:.2f}")
-        self.entry_dinheiro.delete(0, tk.END)
-
-        if self.saldo >= self.produto_selecionado['preco']:
-            self.atualizar_estado("ENTREGANDO PRODUTO")
-            self.dispense()
-
-    def dispense(self):
-        troco = self.saldo - self.produto_selecionado['preco']
-        mensagem = f"Produto {self.produto_selecionado['nome']} entregue com sucesso!"
-        if troco > 0:
-            mensagem += f"\nTroco: R$ {troco:.2f}"
-        messagebox.showinfo("Entrega", mensagem)
-        self.reset()
-
-    def reset(self):
-        # Reinicia a máquina para uma nova operação
-        self.saldo = 0.0
-        self.produto_selecionado = None
-        self.atualizar_estado("ESPERANDO SELEÇÃO")
-        self.entry_dinheiro.delete(0, tk.END)
-
-
-# Função principal que cria as janelas e inicia a aplicação
+# Função principal que organiza os painéis da interface
 def main():
     root = tk.Tk()
-    root.title("Simulação: Máquina de Vendas e Autômato")
+    root.title("Máquina de Vendas Americana & Demonstração do Autômato")
     
-    # Cria um frame principal para separar as interfaces
-    main_frame = tk.Frame(root)
+    # Frame principal com fundo escuro
+    main_frame = tk.Frame(root, bg="#222")
     main_frame.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
     
-    # Frame para a máquina de vendas (lado esquerdo)
-    frame_vendas = tk.Frame(main_frame)
-    frame_vendas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    # Painel esquerdo: Interface interativa + representação gráfica da máquina de vendas
+    left_frame = tk.Frame(main_frame, bg="#222")
+    left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     
-    # Frame para o automato gráfico (lado direito)
-    frame_automato = tk.Frame(main_frame)
-    frame_automato.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+    # Painel interativo (parte superior do painel esquerdo)
+    interactive_frame = tk.Frame(left_frame, bg="#222")
+    interactive_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
     
-    # Inicializa o autômato gráfico
-    automato = AutomatoGrafico(frame_automato)
-    # Inicializa a máquina de vendas, passando a referência do automato gráfico
-    maquina = MaquinaVendas(frame_vendas, automato)
+    # Painel gráfico da máquina de vendas (parte inferior do painel esquerdo)
+    vending_graphic_frame = tk.Frame(left_frame, bg="#222")
+    vending_graphic_frame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+    
+    # Painel direito: Diagrama do autômato, detalhes e requisitos
+    right_frame = tk.Frame(main_frame, bg="#ddd")
+    right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+    
+    automata_display = AutomataDisplay(right_frame)
+    
+    # Catálogo de produtos com preços permitidos únicos
+    products = {
+        "P1": {"name": "Refrigerante", "price": 2},
+        "P2": {"name": "Água", "price": 4},
+        "P3": {"name": "Batata Frita", "price": 5},
+        "P4": {"name": "Doce", "price": 10}
+    }
+    
+    # Cria a representação gráfica da máquina de vendas
+    class VendingMachineGraphicWrapper:
+        def __init__(self, master, products):
+            self.master = master
+            self.products = products
+            self.canvas = tk.Canvas(master, width=300, height=400, bg="#eee")
+            self.canvas.pack(padx=5, pady=5)
+            self.draw_machine()
+
+        def draw_machine(self):
+            self.canvas.delete("all")
+            self.canvas.create_rectangle(20, 20, 280, 380, fill="#ccc", outline="black", width=2)
+            self.canvas.create_rectangle(30, 30, 270, 200, fill="#fff", outline="black")
+            self.canvas.create_text(150, 40, text="Produtos", font=("Helvetica", 10, "bold"))
+            num = len(self.products)
+            slot_height = 150 // num
+            y = 60
+            for code, info in self.products.items():
+                self.canvas.create_rectangle(40, y, 260, y+slot_height-5, fill="#ddd", outline="black")
+                self.canvas.create_text(150, y + slot_height//2 - 5, 
+                                        text=f"{code}: {info['name']} - R$ {info['price']:.2f}", 
+                                        font=("Helvetica", 9))
+                y += slot_height
+            self.canvas.create_rectangle(30, 220, 270, 280, fill="#fafafa", outline="black")
+            self.canvas.create_text(150, 240, text="Entrada de Dinheiro", font=("Helvetica", 10, "italic"))
+            self.canvas.create_rectangle(30, 300, 270, 360, fill="#fafafa", outline="black")
+            self.canvas.create_text(150, 330, text="Entrega do Produto", font=("Helvetica", 10, "italic"), tag="delivery")
+
+        def highlight_slot(self, code):
+            self.draw_machine()
+            num = len(self.products)
+            slot_height = 150 // num
+            y = 60
+            for c in self.products.keys():
+                if c == code:
+                    outline_color = "red"
+                    self.canvas.create_rectangle(40, y, 260, y+slot_height-5, fill="#ddd", outline=outline_color, width=3)
+                y += slot_height
+
+        def deliver_product(self, product_name):
+            self.canvas.delete("delivery")
+            self.canvas.create_text(150, 330, text=f"Entrega: {product_name}", font=("Helvetica", 10, "italic"), tag="delivery")
+    
+    vending_graphic = VendingMachineGraphicWrapper(vending_graphic_frame, products)
+    
+    AmericanVendingMachine(interactive_frame, automata_display, vending_graphic)
     
     root.mainloop()
-
 
 if __name__ == "__main__":
     main()
