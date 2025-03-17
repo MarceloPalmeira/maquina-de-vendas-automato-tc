@@ -19,18 +19,20 @@ class AutomataDisplay:
         # Título do diagrama de estados
         tk.Label(master, text="Transições Possíveis:", font=("Helvetica", 10, "bold")).pack(pady=(5,0))
         
-        # Canvas para desenhar o diagrama
-        self.diagram_canvas = tk.Canvas(master, width=500, height=300, bg="white")
+        # Canvas maior para acomodar os estados mais espaçados
+        self.diagram_canvas = tk.Canvas(master, width=600, height=300, bg="white")
         self.diagram_canvas.pack(padx=5, pady=5)
         
         # Define as posições para cada estado: (centro_x, centro_y, raio)
+        # Layout simétrico: Q0 à esquerda, Q1 e Q2 no centro (Q1 abaixo, Q2 acima),
+        # Q3 e Q4 à direita (Q3 acima, Q4 abaixo) e QF mais à direita, centralizado.
         self.state_positions = {
-            "Q0": (60, 150, 40),
-            "Q1": (160, 150, 40),  # Saldo R$2
-            "Q2": (160, 50, 40),   # Saldo R$5
-            "Q3": (260, 50, 40),   # Saldo R$10
-            "Q4": (260, 150, 40),  # Saldo R$4
-            "QF": (360, 100, 40)   # Estado Final
+            "Q0": (80, 150, 40),
+            "Q1": (200, 200, 40),  # Saldo R$2
+            "Q2": (200, 100, 40),  # Saldo R$5
+            "Q3": (320, 100, 40),  # Saldo R$10
+            "Q4": (320, 200, 40),  # Saldo R$4
+            "QF": (460, 150, 40)   # Estado Final
         }
         self.state_circles = {}
         self.draw_diagram()
@@ -66,7 +68,10 @@ class AutomataDisplay:
             self.state_circles[state] = oval
             self.diagram_canvas.create_text(cx, cy, text=state, font=("Helvetica", 8, "bold"), width=80)
         
-        # Cálculo dos pontos de saída e chegada para cada seta:
+        # Calcula os pontos de início (start) e fim (end) para cada seta,
+        # utilizando os centros e raios dos estados para que as linhas
+        # partam e cheguem às bordas dos círculos.
+        
         # Q0 -> Q1
         start = (self.state_positions["Q0"][0] + 40, self.state_positions["Q0"][1])
         end   = (self.state_positions["Q1"][0] - 40, self.state_positions["Q1"][1])
@@ -77,7 +82,7 @@ class AutomataDisplay:
         end   = (self.state_positions["Q2"][0] - 40, self.state_positions["Q2"][1])
         self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=2)
         
-        # Q0 -> Q3
+        # Q0 -> Q3 (inserir R$10 diretamente)
         start = (self.state_positions["Q0"][0] + 40, self.state_positions["Q0"][1])
         end   = (self.state_positions["Q3"][0] - 40, self.state_positions["Q3"][1])
         self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=2)
@@ -92,23 +97,23 @@ class AutomataDisplay:
         end   = (self.state_positions["Q3"][0] - 40, self.state_positions["Q3"][1])
         self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=2)
         
-        # Transição de compra (estado para QF):
-        # Q1 -> QF (Comprar Refrigerante)
+        # Transição de compra para QF:
+        # Q1 -> QF
         start = (self.state_positions["Q1"][0] + 40, self.state_positions["Q1"][1])
         end   = (self.state_positions["QF"][0] - 40, self.state_positions["QF"][1])
         self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=3)
         
-        # Q2 -> QF (Comprar Batata Frita) - NOVA seta
+        # Q2 -> QF
         start = (self.state_positions["Q2"][0] + 40, self.state_positions["Q2"][1])
         end   = (self.state_positions["QF"][0] - 40, self.state_positions["QF"][1])
         self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=3)
         
-        # Q3 -> QF (Comprar Doce)
+        # Q3 -> QF
         start = (self.state_positions["Q3"][0] + 40, self.state_positions["Q3"][1])
         end   = (self.state_positions["QF"][0] - 40, self.state_positions["QF"][1])
         self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=2)
         
-        # Q4 -> QF (Comprar Água)
+        # Q4 -> QF
         start = (self.state_positions["Q4"][0] + 40, self.state_positions["Q4"][1])
         end   = (self.state_positions["QF"][0] - 40, self.state_positions["QF"][1])
         self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=2)
