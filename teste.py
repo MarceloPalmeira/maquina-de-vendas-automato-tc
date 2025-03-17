@@ -1,13 +1,14 @@
 import tkinter as tk
 from tkinter import messagebox
 
-# Descrições dos estados do autômato (novos estados: Q0, Q1, Q2, Q3, Q4)
+# Descrições dos estados do autômato (novos estados: Q0, Q1, Q2, Q3, Q4, QF)
 STATE_DESCRIPTIONS = {
     "Q0": "Estado inicial: Saldo 0. Aguardando inserção de dinheiro.",
     "Q1": "Saldo R$2. Opções: comprar (Refrigerante) ou inserir mais R$2 para ir a Q4.",
     "Q2": "Saldo R$5. Opções: comprar (Batata Frita) ou inserir mais R$5 para ir a Q3.",
     "Q3": "Saldo R$10. Pode ser atingido diretamente de Q0 ou via Q2. Compre (Doce).",
-    "Q4": "Saldo R$4. Compre (Água)."
+    "Q4": "Saldo R$4. Compre (Água).",
+    "QF": "Estado Final: Transação Concluída."
 }
 
 # Painel do autômato com estados circulares e os 5 requisitos
@@ -28,7 +29,8 @@ class AutomataDisplay:
             "Q1": (160, 150, 40),  # Saldo R$2
             "Q2": (160, 50, 40),   # Saldo R$5
             "Q3": (260, 50, 40),   # Saldo R$10
-            "Q4": (260, 150, 40)   # Saldo R$4
+            "Q4": (260, 150, 40),  # Saldo R$4
+            "QF": (360, 100, 40)   # Estado Final
         }
         self.state_circles = {}
         self.draw_diagram()
@@ -64,17 +66,59 @@ class AutomataDisplay:
             self.state_circles[state] = oval
             self.diagram_canvas.create_text(cx, cy, text=state, font=("Helvetica", 8, "bold"), width=80)
         
-        # Desenha as setas de transição:
-        # De Q0 para Q1 (inserir R$2)
-        self.diagram_canvas.create_line(100, 150, 140, 150, arrow=tk.LAST, width=2)
-        # De Q0 para Q2 (inserir R$5)
-        self.diagram_canvas.create_line(80, 150, 120, 80, arrow=tk.LAST, width=2)
-        # De Q0 para Q3 (inserir R$10 diretamente)
-        self.diagram_canvas.create_line(80, 150, 120, 50, arrow=tk.LAST, width=2)
-        # De Q1 para Q4 (inserir mais R$2)
-        self.diagram_canvas.create_line(200, 150, 240, 150, arrow=tk.LAST, width=2)
-        # De Q2 para Q3 (inserir mais R$5)
-        self.diagram_canvas.create_line(180, 50, 220, 50, arrow=tk.LAST, width=2)
+        # Cálculo dos pontos de saída e chegada para cada seta:
+        # Q0 -> Q1
+        start = (self.state_positions["Q0"][0] + 40, self.state_positions["Q0"][1])
+        end   = (self.state_positions["Q1"][0] - 40, self.state_positions["Q1"][1])
+        self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=2)
+        
+        # Q0 -> Q2
+        start = (self.state_positions["Q0"][0] + 40, self.state_positions["Q0"][1])
+        end   = (self.state_positions["Q2"][0] - 40, self.state_positions["Q2"][1])
+        self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=2)
+        
+        # Q0 -> Q3
+        start = (self.state_positions["Q0"][0] + 40, self.state_positions["Q0"][1])
+        end   = (self.state_positions["Q3"][0] - 40, self.state_positions["Q3"][1])
+        self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=2)
+        
+        # Q1 -> Q4 (inserir mais R$2)
+        start = (self.state_positions["Q1"][0] + 40, self.state_positions["Q1"][1])
+        end   = (self.state_positions["Q4"][0] - 40, self.state_positions["Q4"][1])
+        self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=2)
+        
+        # Q2 -> Q3 (inserir mais R$5)
+        start = (self.state_positions["Q2"][0] + 40, self.state_positions["Q2"][1])
+        end   = (self.state_positions["Q3"][0] - 40, self.state_positions["Q3"][1])
+        self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=2)
+        
+        # Transição de compra (estado para QF):
+        # Q1 -> QF (Comprar Refrigerante)
+        start = (self.state_positions["Q1"][0] + 40, self.state_positions["Q1"][1])
+        end   = (self.state_positions["QF"][0] - 40, self.state_positions["QF"][1])
+        self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=3)
+        
+        # Q2 -> QF (Comprar Batata Frita) - NOVA seta
+        start = (self.state_positions["Q2"][0] + 40, self.state_positions["Q2"][1])
+        end   = (self.state_positions["QF"][0] - 40, self.state_positions["QF"][1])
+        self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=3)
+        
+        # Q3 -> QF (Comprar Doce)
+        start = (self.state_positions["Q3"][0] + 40, self.state_positions["Q3"][1])
+        end   = (self.state_positions["QF"][0] - 40, self.state_positions["QF"][1])
+        self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=2)
+        
+        # Q4 -> QF (Comprar Água)
+        start = (self.state_positions["Q4"][0] + 40, self.state_positions["Q4"][1])
+        end   = (self.state_positions["QF"][0] - 40, self.state_positions["QF"][1])
+        self.diagram_canvas.create_line(start[0], start[1], end[0], end[1], arrow=tk.LAST, width=2)
+        
+        # Círculo extra ao redor de QF para destacar o estado final
+        cx, cy, r = self.state_positions["QF"]
+        extra_margin = 5
+        self.diagram_canvas.create_oval(cx - r - extra_margin, cy - r - extra_margin,
+                                          cx + r + extra_margin, cy + r + extra_margin,
+                                          outline="red", width=3)
 
     def update_state(self, current_state):
         # Atualiza o diagrama destacando o estado atual
@@ -149,10 +193,10 @@ class AmericanVendingMachine:
         
         # Catálogo de produtos com preços permitidos únicos (em R$)
         self.products = {
-            "P1": {"name": "Refrigerante", "price": 2},
-            "P2": {"name": "Água", "price": 4},
-            "P3": {"name": "Batata Frita", "price": 5},
-            "P4": {"name": "Doce", "price": 10}
+            "R": {"name": "Refrigerante", "price": 2},
+            "A": {"name": "Água", "price": 4},
+            "B": {"name": "Batata Frita", "price": 5},
+            "D": {"name": "Doce", "price": 10}
         }
         # Estado inicial: Q0
         self.state = "Q0"
@@ -205,21 +249,21 @@ class AmericanVendingMachine:
         # Se estiver em Q0, as transições diretas:
         if self.state == "Q0":
             if self.balance == 2:
-                self.matching_product = ("P1", self.products["P1"])
+                self.matching_product = ("P1", self.products["R"])
                 self.update_state("Q1")
             elif self.balance == 5:
-                self.matching_product = ("P3", self.products["P3"])
+                self.matching_product = ("P3", self.products["B"])
                 self.update_state("Q2")
             elif self.balance == 10:
-                self.matching_product = ("P4", self.products["P4"])
+                self.matching_product = ("P4", self.products["D"])
                 self.update_state("Q3")
         # Se estiver em Q1, opção de inserir mais R$2 para ir a Q4:
         if self.state == "Q1" and self.balance == 4:
-            self.matching_product = ("P2", self.products["P2"])
+            self.matching_product = ("P2", self.products["A"])
             self.update_state("Q4")
         # Se estiver em Q2, opção de inserir mais R$5 para ir a Q3:
         if self.state == "Q2" and self.balance == 10:
-            self.matching_product = ("P4", self.products["P4"])
+            self.matching_product = ("P4", self.products["D"])
             self.update_state("Q3")
         
         if self.matching_product:
@@ -249,9 +293,9 @@ class AmericanVendingMachine:
     def purchase_product(self):
         self.choice_frame.pack_forget()
         code, info = self.matching_product
-        # Atualiza a área de entrega com o nome do produto comprado, sem pop-up adicional
+        # Atualiza o estado para QF (estado final) antes de concluir a transação
+        self.update_state("QF")
         self.vending_graphic.deliver_product(info["name"])
-        # Exibe apenas um pop-up final informando que a transação foi concluída
         messagebox.showinfo("Transação", "Transação concluída!")
         self.reset_machine()
     
@@ -293,10 +337,10 @@ def main():
     
     # Catálogo de produtos com preços permitidos únicos
     products = {
-        "P1": {"name": "Refrigerante", "price": 2},
-        "P2": {"name": "Água", "price": 4},
-        "P3": {"name": "Batata Frita", "price": 5},
-        "P4": {"name": "Doce", "price": 10}
+        "R": {"name": "Refrigerante", "price": 2},
+        "A": {"name": "Água", "price": 4},
+        "B": {"name": "Batata Frita", "price": 5},
+        "D": {"name": "Doce", "price": 10}
     }
     
     # Cria a representação gráfica da máquina de vendas
